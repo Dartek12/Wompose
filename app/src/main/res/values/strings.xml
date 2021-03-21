@@ -9,5 +9,22 @@
       or implied. See the License for the specific language governing permissions and limitations under
       the License.
       -->
-    <string name="app_name">AndroidDevChallenge</string>
+    <string name="app_name">Wompose</string>
+    <string name="cloudy">Cloudy</string>
+    <string name="cloudyAndSunny">Cloudy and sunny</string>
+    <string name="cloudyNight">Cloudy night</string>
+    <string name="night">Night</string>
+    <string name="raining">Raining</string>
+    <string name="rainingAndSunny">Raining and sunny</string>
+    <string name="rainingNight">Raining night</string>
+    <string name="snowing">Snowing</string>
+    <string name="snowingAndSunny">snowingAndSunny</string>
+    <string name="snowingNight">Snowing night</string>
+    <string name="sunny">Sunny</string>
+    <string name="thunder">Thunder</string>
+    <string name="thunderAndSunny">Thunder and sunny</string>
+    <string name="thunderNight">Thunder night</string>
+    <string name="windy">Windy</string>
+    <string name="windyAndSunny">Windy and sunny</string>
+    <string name="windyNight">Windy night</string>
 </resources>
