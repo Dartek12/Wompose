@@ -2,6 +2,7 @@ package com.example.androiddevchallenge.ui.home
 
 import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
+import androidx.compose.ui.graphics.Color
 import com.example.androiddevchallenge.R
 import com.example.androiddevchallenge.model.Cloudy
 import com.example.androiddevchallenge.model.CloudyAndSunny
@@ -42,6 +43,29 @@ fun WeatherState.drawableRes(): Int {
         Windy -> R.drawable.windy
         WindyAndSunny -> R.drawable.windy_and_sunny
         WindyNight -> R.drawable.windy_night
+    }
+}
+
+fun WeatherState.color(): Color {
+    val nightColor = Color(0xff0c1445)
+    return when(this) {
+        Cloudy -> Color(0xffc2d5dc)
+        CloudyAndSunny -> Color(0xffc2d5dc)
+        Raining -> Color(0xffafc3cc)
+        RainingAndSunny -> Color(0xffafc3cc)
+        Snowing -> Color(0xff83a8c3)
+        SnowingAndSunny -> Color(0xff83a8c3)
+        Sunny -> Color(0xff69d0ff)
+        Thunder -> Color(0xff493855)
+        ThunderAndSunny -> Color(0xff493855)
+        Windy -> Color(0xffafc3cc)
+        WindyAndSunny -> Color(0xffafc3cc)
+        RainingNight -> nightColor
+        SnowingNight -> nightColor
+        CloudyNight -> nightColor
+        Night -> nightColor
+        WindyNight -> nightColor
+        ThunderNight -> Color(0xff2f2436)
     }
 }
 

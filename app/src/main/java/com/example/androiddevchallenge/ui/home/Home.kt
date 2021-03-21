@@ -1,12 +1,24 @@
 package com.example.androiddevchallenge.ui.home
 
 import android.util.Log
+import androidx.compose.animation.Animatable
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animate
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.requiredSize
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -14,17 +26,27 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Surface
 import androidx.compose.material.Text
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Home
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.androiddevchallenge.R
 import com.example.androiddevchallenge.model.Forecast
+import com.example.androiddevchallenge.model.WeatherState
 import com.example.androiddevchallenge.model.allWeatherStates
+import com.example.androiddevchallenge.util.foregroundColor
 import dev.chrisbanes.accompanist.insets.LocalWindowInsets
 import dev.chrisbanes.accompanist.insets.toPaddingValues
 
@@ -49,11 +71,14 @@ fun HomeContent(forecast: Forecast) {
     Column(
         modifier = Modifier
             .verticalScroll(scrollState)
-            .padding(statusBarPadding)
-            .padding(navigationBarPadding)
     ) {
-
-        Summary(modifier = Modifier.fillMaxWidth(), place = forecast.place)
+        Summary(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(statusBarPadding),
+            place = forecast.place,
+            state = forecast.selectedDay.state,
+        )
 
         LazyRow(modifier = Modifier.fillMaxWidth()) {
             items(allWeatherStates()) { item ->
@@ -67,19 +92,43 @@ fun HomeContent(forecast: Forecast) {
                 }
             }
         }
-    }
 
-    BoxWithConstraints {
-        SideEffect {
-            Log.d("Wompose", "Contraints max height: ${constraints.maxHeight}")
-        }
+        Spacer(modifier = Modifier.padding(navigationBarPadding))
     }
 }
 
 @Composable
-fun Summary(modifier: Modifier = Modifier, place: String) {
-    Column(modifier, horizontalAlignment = Alignment.CenterHorizontally) {
-        val typography = MaterialTheme.typography
-        Text(place.toUpperCase(), style = typography.h4)
+fun Summary(modifier: Modifier = Modifier, state: WeatherState, place: String) {
+    val color = remember { Animatable(Color.Gray) }
+    LaunchedEffect(state.color()) {
+        color.animateTo(state.color(), animationSpec = tween(1000, easing = FastOutSlowInEasing))
     }
+
+    Column(
+        modifier = Modifier
+            .background(color.value)
+            .then(modifier)
+    ) {
+        Heading(
+            Modifier.padding(bottom = 32.dp, top = 32.dp),
+            place = place,
+            backgroundColor = color.value
+        )
+
+        WeatherCanvas()
+    }
+}
+
+@Composable
+fun Heading(modifier: Modifier = Modifier, place: String, backgroundColor: Color) {
+    val textColor by animateColorAsState(backgroundColor.foregroundColor())
+    Column(modifier = modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
+        val typography = MaterialTheme.typography
+        Text(place.toUpperCase(), style = typography.h5.copy(color = textColor))
+    }
+}
+
+@Composable
+fun WeatherCanvas() {
+    Box(Modifier.height(400.dp))
 }
