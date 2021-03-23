@@ -45,7 +45,7 @@ class TemperatureGraph(
     private val values: List<Float>
 ) : DrawModifier {
     private val textPaint = Paint().asFrameworkPaint().also {
-        it.color = color.toArgb()
+        it.color = textStyle.color.toArgb()
         it.isAntiAlias = true
         it.typeface = textStyle.asTypeface(context)
     }

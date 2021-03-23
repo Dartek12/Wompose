@@ -10,10 +10,13 @@
       the License.
       -->
     <string name="app_name">Wompose</string>
+
+    <string name="night">Night</string>
+    <string name="day">Day</string>
+
     <string name="cloudy">Cloudy</string>
     <string name="cloudyAndSunny">Cloudy and sunny</string>
     <string name="cloudyNight">Cloudy night</string>
-    <string name="night">Night</string>
     <string name="raining">Raining</string>
     <string name="rainingAndSunny">Raining and sunny</string>
     <string name="rainingNight">Raining night</string>
@@ -27,4 +30,7 @@
     <string name="windy">Windy</string>
     <string name="windyAndSunny">Windy and sunny</string>
     <string name="windyNight">Windy night</string>
+    <string name="today">Today</string>
+    <string name="tomorrow">Tomorow</string>
+    <string name="celsius_placeholder">%d °C</string>
 </resources>

@@ -41,6 +41,12 @@ val typography = Typography(
         fontSize = 24.sp,
         letterSpacing = 1.15.sp
     ),
+    h3 = TextStyle(
+        fontFamily = merriweather,
+        fontWeight = FontWeight.Bold,
+        fontSize = 20.sp,
+        letterSpacing = 1.15.sp
+    ),
     body1 = TextStyle(
         fontFamily = merriweather,
         fontWeight = FontWeight.Normal,

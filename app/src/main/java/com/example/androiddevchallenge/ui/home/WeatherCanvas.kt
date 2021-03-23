@@ -1,5 +1,6 @@
 package com.example.androiddevchallenge.ui.home
 
+import android.util.Log
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.TweenSpec
 import androidx.compose.animation.core.calculateTargetValue
@@ -13,7 +14,7 @@ import androidx.compose.foundation.layout.requiredWidth
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.pointer.pointerInput
@@ -38,13 +39,20 @@ import kotlin.math.pow
 import kotlin.math.sign
 import kotlin.math.sqrt
 
-const val AnimationDuration = 2000
+const val AnimationDuration = 1600
+const val ReturnAnimationDuration = 1000
 const val CloudHidden = 0f
 const val CloudPresented = 1f
 
 @Composable
-fun WeatherCanvas(modifier: Modifier = Modifier, state: WeatherState) {
+fun WeatherCanvas(
+    modifier: Modifier = Modifier,
+    state: WeatherState,
+    onBlueBodySwipedBackward: () -> Unit,
+    onBlueBodySwipedForward: () -> Unit
+) {
     val sunSize = 96.dp
+    val moonSize = 96.dp
     val sunSizePx = with(LocalDensity.current) { sunSize.toPx() }
     val cloudWidth = 128.dp
     val cloudAspectRatio = 1.3333f
@@ -56,14 +64,20 @@ fun WeatherCanvas(modifier: Modifier = Modifier, state: WeatherState) {
         val canvasHeight = constraints.maxHeight
         val guideline = canvasHeight / 4f
 
-        val sunLeftPosition = Offset(-sunSizePx, canvasHeight * 0.7f)
-        val sunRightPosition = Offset(canvasWidth + sunSizePx, canvasHeight * 0.7f)
-        val sunCenterPosition = Offset(canvasWidth / 2f, guideline)
-        val sunCircle = remember(sunLeftPosition, sunRightPosition, sunCenterPosition) {
-            Circle.fromPoints(sunLeftPosition, sunCenterPosition, sunRightPosition)
-        }
+        val blueBodyLeftPosition = Offset(-sunSizePx, canvasHeight * 0.7f)
+        val blueBodyRightPosition = Offset(canvasWidth + sunSizePx, canvasHeight * 0.7f)
+        val blueBodyCenterPosition = Offset(canvasWidth / 2f, guideline)
+        val blueBodyCircle =
+            remember(blueBodyLeftPosition, blueBodyRightPosition, blueBodyCenterPosition) {
+                Circle.fromPoints(
+                    blueBodyLeftPosition,
+                    blueBodyCenterPosition,
+                    blueBodyRightPosition
+                )
+            }
 
-        val sunPositionX = remember { Animatable(sunLeftPosition.x) }
+        val sunPositionX = remember { Animatable(blueBodyLeftPosition.x) }
+        val moonPositionX = remember { Animatable(blueBodyLeftPosition.x) }
         val cloudPosition = remember { Animatable(0.0f) }
 
         val cloudDescriptions = remember(canvasWidth, canvasHeight) {
@@ -92,17 +106,25 @@ fun WeatherCanvas(modifier: Modifier = Modifier, state: WeatherState) {
         LaunchedEffect(state) {
             launch {
                 sunPositionX.animateTo(
-                    sunCenterPosition.x,
+                    if (state.day) blueBodyCenterPosition.x else blueBodyRightPosition.x,
+                    animationSpec = TweenSpec(AnimationDuration)
+                )
+            }
+            launch {
+                moonPositionX.animateTo(
+                    if (state.night) blueBodyCenterPosition.x else blueBodyRightPosition.x,
                     animationSpec = TweenSpec(AnimationDuration)
                 )
             }
             launch {
                 cloudPosition.animateTo(
-                    if(state.hasClouds) CloudPresented else CloudHidden,
+                    if (state.hasClouds) CloudPresented else CloudHidden,
                     animationSpec = TweenSpec(AnimationDuration)
                 )
             }
         }
+
+        val animatedPositionX = rememberUpdatedState(if (state.day) sunPositionX else moonPositionX)
 
         SubcomposeLayout(modifier.pointerInput(Unit) {
             val decay = splineBasedDecay<Float>(this)
@@ -111,19 +133,19 @@ fun WeatherCanvas(modifier: Modifier = Modifier, state: WeatherState) {
                 while (true) {
                     val pointerId = awaitPointerEventScope { awaitFirstDown().id }
                     val velocityTracker = VelocityTracker()
-                    sunPositionX.stop()
+                    animatedPositionX.value.stop()
 
                     awaitPointerEventScope {
                         drag(pointerId) { change ->
                             val px = change.positionChange().x
                             val py = change.positionChange().y
                             val changeX = sqrt(px.pow(2f) + py.pow(2f)) * px.sign
-                            val targetX = (sunPositionX.value + changeX).coerceIn(
-                                sunLeftPosition.x,
-                                sunRightPosition.x
+                            val targetX = (animatedPositionX.value.value + changeX).coerceIn(
+                                blueBodyLeftPosition.x,
+                                blueBodyRightPosition.x
                             )
                             launch {
-                                sunPositionX.snapTo(
+                                animatedPositionX.value.snapTo(
                                     targetX
                                 )
                             }
@@ -134,34 +156,26 @@ fun WeatherCanvas(modifier: Modifier = Modifier, state: WeatherState) {
                         }
                     }
 
-                    // No longer receiving touch events. Prepare the animation.
                     val velocity = velocityTracker.calculateVelocity().x
                     val targetOffsetX = decay.calculateTargetValue(
-                        sunPositionX.value,
+                        animatedPositionX.value.value,
                         velocity
                     )
 
                     launch {
-                        when {
-                            targetOffsetX.absoluteValue >= size.width -> {
-                                sunPositionX.animateTo(
-                                    targetValue = sunRightPosition.x,
-                                    initialVelocity = velocity
-                                )
-                            }
-                            targetOffsetX.absoluteValue <= 0 -> {
-                                sunPositionX.animateTo(
-                                    targetValue = sunLeftPosition.x,
-                                    initialVelocity = velocity,
-                                )
-                            }
-                            else -> {
-                                sunPositionX.animateTo(
-                                    targetValue = sunCenterPosition.x,
-                                    initialVelocity = velocity
-                                )
-                            }
-                        }
+                        animatedPositionX.value.animateTo(
+                            targetValue = blueBodyCenterPosition.x,
+                            initialVelocity = velocity,
+                            animationSpec = TweenSpec(ReturnAnimationDuration),
+                        )
+                    }
+
+                    Log.d("Wompose", "Target x: ${targetOffsetX}, width: ${size.width}")
+
+                    if (targetOffsetX >= size.width) {
+                        onBlueBodySwipedForward()
+                    } else if (targetOffsetX < 0) {
+                        onBlueBodySwipedBackward()
                     }
                 }
             }
@@ -181,6 +195,17 @@ fun WeatherCanvas(modifier: Modifier = Modifier, state: WeatherState) {
                     )
                 }.fastMap { it.measure(looseConstraints) }.first()
 
+                val moon = subcompose("moon") {
+                    Image(
+                        painter = painterResource(R.drawable.ic_moon),
+                        contentDescription = "moon",
+                        contentScale = ContentScale.FillBounds,
+                        modifier = Modifier
+                            .requiredWidth(moonSize)
+                            .aspectRatio(0.8125f)
+                    )
+                }.fastMap { it.measure(looseConstraints) }.first()
+
                 val clouds = subcompose("cloud-left") {
                     for (i in cloudDescriptions.indices) {
                         Image(
@@ -193,18 +218,21 @@ fun WeatherCanvas(modifier: Modifier = Modifier, state: WeatherState) {
                     }
                 }.fastMap { it.measure(looseConstraints) }
 
-                val (p1, p2) = sunCircle.pointsAt(x = sunPositionX.value)
-                val sunCenter = if (p1.y < p2.y) p1 else p2
-                val sunPosition = sunCenter.minus(Offset(sun.width / 2f, sun.height / 2f))
+                blueBodyCircle.pointsAt(x = moonPositionX.value).also { (p1, p2) ->
+                    val moonCenter = if (p1.y < p2.y) p1 else p2
+                    val moonPosition = moonCenter.minus(Offset(sun.width / 2f, sun.height / 2f))
+                    moon.place(moonPosition.round(), zIndex = 1f)
+                }
 
-                sun.place(
-                    sunPosition.round(),
-                    zIndex = 0.0f
-                )
+                blueBodyCircle.pointsAt(x = sunPositionX.value).also { (p1, p2) ->
+                    val sunCenter = if (p1.y < p2.y) p1 else p2
+                    val sunPosition = sunCenter.minus(Offset(sun.width / 2f, sun.height / 2f))
+                    sun.place(sunPosition.round(), zIndex = 0f)
+                }
 
                 for (i in cloudDescriptions.indices) {
                     val position = cloudDescriptions[i].lerp(cloudPosition.value)
-                    clouds[i].place(position, zIndex = 1f)
+                    clouds[i].place(position, zIndex = 2f)
                 }
             }
         }
