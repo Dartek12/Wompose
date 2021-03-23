@@ -1,8 +1,12 @@
 package com.example.androiddevchallenge.model
 
-sealed class WeatherState
+sealed class WeatherState {
+    open val hasClouds: Boolean = true
+}
 
-object Sunny : WeatherState()
+object Sunny : WeatherState() {
+    override val hasClouds = false
+}
 object Cloudy : WeatherState()
 object CloudyAndSunny : WeatherState()
 object Raining : WeatherState()
@@ -13,29 +17,11 @@ object Thunder : WeatherState()
 object ThunderAndSunny : WeatherState()
 object Windy : WeatherState()
 object WindyAndSunny : WeatherState()
-object Night : WeatherState()
+object Night : WeatherState() {
+    override val hasClouds = false
+}
 object CloudyNight : WeatherState()
 object RainingNight : WeatherState()
 object SnowingNight : WeatherState()
 object ThunderNight : WeatherState()
 object WindyNight : WeatherState()
-
-fun allWeatherStates() = listOf(
-    Sunny,
-    Cloudy,
-    CloudyAndSunny,
-    Raining,
-    RainingAndSunny,
-    Snowing,
-    SnowingAndSunny,
-    Thunder,
-    ThunderAndSunny,
-    Windy,
-    WindyAndSunny,
-    Night,
-    CloudyNight,
-    RainingNight,
-    SnowingNight,
-    ThunderNight,
-    WindyNight,
-)
