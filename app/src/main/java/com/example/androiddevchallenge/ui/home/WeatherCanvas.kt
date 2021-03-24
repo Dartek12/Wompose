@@ -1,3 +1,18 @@
+/*
+ * Copyright 2021 The Android Open Source Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package com.example.androiddevchallenge.ui.home
 
 import android.util.Log
@@ -63,7 +78,7 @@ data class ConditionsDirection(
         }
 
     fun tryUpdate(state: WeatherState, date: Date): ConditionsDirection {
-        if(date != this.currentDate) {
+        if (date != this.currentDate) {
             return copy(
                 previousState = this.state,
                 state = state,
@@ -90,8 +105,6 @@ fun WeatherCanvas(
     val cloudAspectRatio = 1.3333f
     val cloudWidthPx = with(LocalDensity.current) { cloudWidth.toPx() }
     val cloudHeightPx = cloudWidthPx / cloudAspectRatio
-
-
 
     BoxWithConstraints(modifier) {
         val canvasWidth = constraints.maxWidth
@@ -124,7 +137,8 @@ fun WeatherCanvas(
                     shown = Offset(
                         canvasWidth / 2f,
                         guideline - cloudHeightPx / 3f
-                    ), hidden = Offset(canvasWidth.toFloat(), guideline - cloudHeightPx / 3f)
+                    ),
+                    hidden = Offset(canvasWidth.toFloat(), guideline - cloudHeightPx / 3f)
                 ),
                 CloudPositionDescription(
                     shown = Offset(canvasWidth - cloudWidthPx - 20f, canvasHeight / 2f),
@@ -147,22 +161,22 @@ fun WeatherCanvas(
             val diff = stateDifference.value
 
             launch {
-                if(diff.previousState != null && diff.previousState.day) {
-                    val targetPosition = if(diff.isForward == false) blueBodyLeftPosition else blueBodyRightPosition
+                if (diff.previousState != null && diff.previousState.day) {
+                    val targetPosition = if (diff.isForward == false) blueBodyLeftPosition else blueBodyRightPosition
 
                     sunPositionX.animateTo(
                         targetPosition.x,
                         animationSpec = TweenSpec(AnimationDuration)
                     )
-                    if(diff.state.day) {
-                        val backPosition = if(diff.isForward == false) blueBodyRightPosition else blueBodyLeftPosition
+                    if (diff.state.day) {
+                        val backPosition = if (diff.isForward == false) blueBodyRightPosition else blueBodyLeftPosition
                         sunPositionX.snapTo(
                             backPosition.x
                         )
                     }
                 }
 
-                if(diff.state.day) {
+                if (diff.state.day) {
                     sunPositionX.animateTo(
                         blueBodyCenterPosition.x,
                         animationSpec = TweenSpec(AnimationDuration)
@@ -170,22 +184,22 @@ fun WeatherCanvas(
                 }
             }
             launch {
-                if(diff.previousState != null && diff.previousState.night) {
-                    val targetPosition = if(diff.isForward == false) blueBodyLeftPosition else blueBodyRightPosition
+                if (diff.previousState != null && diff.previousState.night) {
+                    val targetPosition = if (diff.isForward == false) blueBodyLeftPosition else blueBodyRightPosition
 
                     moonPositionX.animateTo(
                         targetPosition.x,
                         animationSpec = TweenSpec(AnimationDuration)
                     )
-                    if(diff.state.day) {
-                        val backPosition = if(diff.isForward == false) blueBodyRightPosition else blueBodyLeftPosition
+                    if (diff.state.day) {
+                        val backPosition = if (diff.isForward == false) blueBodyRightPosition else blueBodyLeftPosition
                         moonPositionX.snapTo(
                             backPosition.x
                         )
                     }
                 }
 
-                if(diff.state.night) {
+                if (diff.state.night) {
                     moonPositionX.animateTo(
                         blueBodyCenterPosition.x,
                         animationSpec = TweenSpec(AnimationDuration)
@@ -202,60 +216,62 @@ fun WeatherCanvas(
 
         val animatedPositionX = rememberUpdatedState(if (state.day) sunPositionX else moonPositionX)
 
-        SubcomposeLayout(modifier.pointerInput(Unit) {
-            val decay = splineBasedDecay<Float>(this)
+        SubcomposeLayout(
+            modifier.pointerInput(Unit) {
+                val decay = splineBasedDecay<Float>(this)
 
-            coroutineScope {
-                while (true) {
-                    val pointerId = awaitPointerEventScope { awaitFirstDown().id }
-                    val velocityTracker = VelocityTracker()
-                    animatedPositionX.value.stop()
+                coroutineScope {
+                    while (true) {
+                        val pointerId = awaitPointerEventScope { awaitFirstDown().id }
+                        val velocityTracker = VelocityTracker()
+                        animatedPositionX.value.stop()
 
-                    awaitPointerEventScope {
-                        drag(pointerId) { change ->
-                            val px = change.positionChange().x
-                            val py = change.positionChange().y
-                            val changeX = sqrt(px.pow(2f) + py.pow(2f)) * px.sign
-                            val targetX = (animatedPositionX.value.value + changeX).coerceIn(
-                                blueBodyLeftPosition.x,
-                                blueBodyRightPosition.x
-                            )
-                            launch {
-                                animatedPositionX.value.snapTo(
-                                    targetX
+                        awaitPointerEventScope {
+                            drag(pointerId) { change ->
+                                val px = change.positionChange().x
+                                val py = change.positionChange().y
+                                val changeX = sqrt(px.pow(2f) + py.pow(2f)) * px.sign
+                                val targetX = (animatedPositionX.value.value + changeX).coerceIn(
+                                    blueBodyLeftPosition.x,
+                                    blueBodyRightPosition.x
+                                )
+                                launch {
+                                    animatedPositionX.value.snapTo(
+                                        targetX
+                                    )
+                                }
+                                velocityTracker.addPosition(
+                                    change.uptimeMillis,
+                                    change.position
                                 )
                             }
-                            velocityTracker.addPosition(
-                                change.uptimeMillis,
-                                change.position
+                        }
+
+                        val velocity = velocityTracker.calculateVelocity().x
+                        val targetOffsetX = decay.calculateTargetValue(
+                            animatedPositionX.value.value,
+                            velocity
+                        )
+
+                        launch {
+                            animatedPositionX.value.animateTo(
+                                targetValue = blueBodyCenterPosition.x,
+                                initialVelocity = velocity,
+                                animationSpec = TweenSpec(ReturnAnimationDuration),
                             )
                         }
-                    }
 
-                    val velocity = velocityTracker.calculateVelocity().x
-                    val targetOffsetX = decay.calculateTargetValue(
-                        animatedPositionX.value.value,
-                        velocity
-                    )
+                        Log.d("Wompose", "Target x: $targetOffsetX, width: ${size.width}")
 
-                    launch {
-                        animatedPositionX.value.animateTo(
-                            targetValue = blueBodyCenterPosition.x,
-                            initialVelocity = velocity,
-                            animationSpec = TweenSpec(ReturnAnimationDuration),
-                        )
-                    }
-
-                    Log.d("Wompose", "Target x: ${targetOffsetX}, width: ${size.width}")
-
-                    if (targetOffsetX >= size.width) {
-                        onBlueBodySwipedForward()
-                    } else if (targetOffsetX < 0) {
-                        onBlueBodySwipedBackward()
+                        if (targetOffsetX >= size.width) {
+                            onBlueBodySwipedForward()
+                        } else if (targetOffsetX < 0) {
+                            onBlueBodySwipedBackward()
+                        }
                     }
                 }
             }
-        }) { constraints ->
+        ) { constraints ->
 
             val looseConstraints = constraints.copy(minWidth = 0, minHeight = 0)
 
