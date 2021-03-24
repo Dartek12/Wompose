@@ -2,7 +2,6 @@ package com.example.androiddevchallenge.ui.home
 
 import android.content.Context
 import android.graphics.Rect
-import android.graphics.RectF
 import android.graphics.Typeface
 import androidx.compose.foundation.layout.padding
 import androidx.compose.ui.Modifier
@@ -24,23 +23,26 @@ fun Modifier.temperatureGraph(
     context: Context,
     color: Color,
     values: List<Float>,
-    size: Dp,
+    height: Dp,
+    cellWidth: Dp,
     textStyle: TextStyle,
 ) =
     then(
         TemperatureGraph(
             context = context,
             color = color,
-            size = size,
+            height = height,
+            cellWidth = cellWidth,
             values = values,
             textStyle = textStyle,
         )
-    ).padding(top = size)
+    ).padding(top = height)
 
 class TemperatureGraph(
     context: Context,
     private val color: Color,
-    private val size: Dp,
+    private val height: Dp,
+    private val cellWidth: Dp,
     private val textStyle: TextStyle,
     private val values: List<Float>
 ) : DrawModifier {
@@ -57,15 +59,16 @@ class TemperatureGraph(
         val circleRadius = this.density * 4f
         val strokeWidth = this.density * 2f
         val fontHeight = textPaint.textSize * 2f
+        val cellWidthPx = cellWidth.toPx()
 
         val minY = values.minByOrNull { it }!!
         val maxY = values.maxByOrNull { it }!!
         val diffY = maxY - minY
 
         val graphWidth = this@draw.size.width
-        val graphHeight = this.density * this@TemperatureGraph.size.value
+        val graphHeight = this.density * this@TemperatureGraph.height.value
 
-        val calculateX = { index: Int -> graphWidth / values.size * (index + 0.5f) + 0.5f }
+        val calculateX = { index: Int -> cellWidthPx * (index + 0.5f) + 0.5f }
         val calculateY =
             { value: Float -> (1 - (value - minY) / diffY) * (graphHeight - 2 * circleRadius - fontHeight) + circleRadius + fontHeight }
 

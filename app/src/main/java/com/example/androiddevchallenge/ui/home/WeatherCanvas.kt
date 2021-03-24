@@ -13,6 +13,9 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.requiredWidth
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.Stable
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
@@ -34,7 +37,7 @@ import com.example.androiddevchallenge.model.WeatherState
 import com.example.androiddevchallenge.util.Circle
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
-import kotlin.math.absoluteValue
+import java.util.Date
 import kotlin.math.pow
 import kotlin.math.sign
 import kotlin.math.sqrt
@@ -44,10 +47,39 @@ const val ReturnAnimationDuration = 1000
 const val CloudHidden = 0f
 const val CloudPresented = 1f
 
+@Stable
+data class ConditionsDirection(
+    val previousState: WeatherState? = null,
+    val state: WeatherState,
+    val lastDate: Date?,
+    val currentDate: Date
+) {
+    val isForward: Boolean?
+        get() {
+            lastDate?.run {
+                return this.time < currentDate.time
+            }
+            return null
+        }
+
+    fun tryUpdate(state: WeatherState, date: Date): ConditionsDirection {
+        if(date != this.currentDate) {
+            return copy(
+                previousState = this.state,
+                state = state,
+                lastDate = this.currentDate,
+                currentDate = date
+            )
+        }
+        return this
+    }
+}
+
 @Composable
 fun WeatherCanvas(
     modifier: Modifier = Modifier,
     state: WeatherState,
+    date: Date,
     onBlueBodySwipedBackward: () -> Unit,
     onBlueBodySwipedForward: () -> Unit
 ) {
@@ -58,6 +90,8 @@ fun WeatherCanvas(
     val cloudAspectRatio = 1.3333f
     val cloudWidthPx = with(LocalDensity.current) { cloudWidth.toPx() }
     val cloudHeightPx = cloudWidthPx / cloudAspectRatio
+
+
 
     BoxWithConstraints(modifier) {
         val canvasWidth = constraints.maxWidth
@@ -103,18 +137,60 @@ fun WeatherCanvas(
             )
         }
 
-        LaunchedEffect(state) {
+        val stateDifference = remember { mutableStateOf(ConditionsDirection(null, state, null, date)) }
+
+        SideEffect {
+            stateDifference.value = stateDifference.value.tryUpdate(state, date)
+        }
+
+        LaunchedEffect(stateDifference.value) {
+            val diff = stateDifference.value
+
             launch {
-                sunPositionX.animateTo(
-                    if (state.day) blueBodyCenterPosition.x else blueBodyRightPosition.x,
-                    animationSpec = TweenSpec(AnimationDuration)
-                )
+                if(diff.previousState != null && diff.previousState.day) {
+                    val targetPosition = if(diff.isForward == false) blueBodyLeftPosition else blueBodyRightPosition
+
+                    sunPositionX.animateTo(
+                        targetPosition.x,
+                        animationSpec = TweenSpec(AnimationDuration)
+                    )
+                    if(diff.state.day) {
+                        val backPosition = if(diff.isForward == false) blueBodyRightPosition else blueBodyLeftPosition
+                        sunPositionX.snapTo(
+                            backPosition.x
+                        )
+                    }
+                }
+
+                if(diff.state.day) {
+                    sunPositionX.animateTo(
+                        blueBodyCenterPosition.x,
+                        animationSpec = TweenSpec(AnimationDuration)
+                    )
+                }
             }
             launch {
-                moonPositionX.animateTo(
-                    if (state.night) blueBodyCenterPosition.x else blueBodyRightPosition.x,
-                    animationSpec = TweenSpec(AnimationDuration)
-                )
+                if(diff.previousState != null && diff.previousState.night) {
+                    val targetPosition = if(diff.isForward == false) blueBodyLeftPosition else blueBodyRightPosition
+
+                    moonPositionX.animateTo(
+                        targetPosition.x,
+                        animationSpec = TweenSpec(AnimationDuration)
+                    )
+                    if(diff.state.day) {
+                        val backPosition = if(diff.isForward == false) blueBodyRightPosition else blueBodyLeftPosition
+                        moonPositionX.snapTo(
+                            backPosition.x
+                        )
+                    }
+                }
+
+                if(diff.state.night) {
+                    moonPositionX.animateTo(
+                        blueBodyCenterPosition.x,
+                        animationSpec = TweenSpec(AnimationDuration)
+                    )
+                }
             }
             launch {
                 cloudPosition.animateTo(

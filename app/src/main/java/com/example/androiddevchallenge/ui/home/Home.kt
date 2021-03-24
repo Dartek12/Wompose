@@ -1,6 +1,7 @@
 package com.example.androiddevchallenge.ui.home
 
 import androidx.compose.animation.Animatable
+import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
@@ -16,12 +17,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredHeight
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.ContentAlpha
-import androidx.compose.material.LocalContentAlpha
 import androidx.compose.material.LocalContentColor
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Surface
@@ -40,6 +38,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -53,8 +52,6 @@ import dev.chrisbanes.accompanist.insets.LocalWindowInsets
 import dev.chrisbanes.accompanist.insets.toPaddingValues
 import java.text.SimpleDateFormat
 import java.util.Calendar
-import java.util.Date
-import java.util.Locale
 
 @Composable
 fun Home() {
@@ -134,6 +131,7 @@ fun WeatherOverview(
                     .weight(1f)
                     .fillMaxWidth(),
                 state = state,
+                date = selectedDay.date,
                 onBlueBodySwipedBackward = onPreviousDaySelected,
                 onBlueBodySwipedForward = onNextDaySelected
             )
@@ -165,12 +163,6 @@ fun Heading(
 
     Column(modifier = modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
         val typography = MaterialTheme.typography
-        CompositionLocalProvider(LocalContentAlpha provides 0.6f) {
-            Text(
-                place.toUpperCase(Locale.ROOT),
-                style = typography.h3
-            )
-        }
 
         val dayDescription = when (daysFromToday) {
             0 -> stringResource(id = R.string.today)
@@ -178,7 +170,8 @@ fun Heading(
             in 2..6 -> weekdayFormat.format(date)
             else -> dateFormat.format(date)
         }.capitalize(currentLocale)
-        Text(dayDescription, style = typography.h2)
+
+        Text("$place • $dayDescription", style = typography.h3)
 
         val annotatedString = with(AnnotatedString.Builder()) {
             selectedDay.dailyTemperature?.also {
@@ -210,29 +203,30 @@ fun HourlyForecastList(hourlyForecasts: List<HourlyForecast>) {
     val graphCaptionTextStyle =
         MaterialTheme.typography.caption.copy(color = LocalContentColor.current)
 
-    LazyColumn(state = rememberLazyListState(), content = { /*TODO*/ })
-
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .horizontalScroll(rememberScrollState())
-            .temperatureGraph(
-                context = LocalContext.current,
-                color = MaterialTheme.colors.primary,
-                values = temperatures,
-                size = 80.dp,
-                textStyle = graphCaptionTextStyle
-            )
-    ) {
-        for (forecast in hourlyForecasts) {
-            HourlyForecast(forecast)
+    Crossfade(targetState = hourlyForecasts, animationSpec = tween(durationMillis = 500)) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState())
+                .temperatureGraph(
+                    context = LocalContext.current,
+                    color = MaterialTheme.colors.primary,
+                    values = temperatures,
+                    height = 80.dp,
+                    cellWidth = 60.dp,
+                    textStyle = graphCaptionTextStyle
+                )
+        ) {
+            for (forecast in hourlyForecasts) {
+                HourlyForecast(modifier = Modifier.width(60.dp), forecast)
+            }
         }
     }
 }
 
 @Composable
-fun HourlyForecast(forecast: HourlyForecast) {
-    Column(modifier = Modifier.padding(8.dp)) {
+fun HourlyForecast(modifier: Modifier = Modifier, forecast: HourlyForecast) {
+    Column(modifier = modifier.padding(8.dp)) {
         Image(
             modifier = Modifier.size(32.dp),
             painter = painterResource(id = forecast.state.drawableRes()),
@@ -243,6 +237,11 @@ fun HourlyForecast(forecast: HourlyForecast) {
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        Text(String.format("%02d:00", forecast.hour), style = MaterialTheme.typography.caption)
+        Text(
+            String.format("%02d:00", forecast.hour),
+            overflow = TextOverflow.Ellipsis,
+            maxLines = 1,
+            style = MaterialTheme.typography.caption
+        )
     }
 }

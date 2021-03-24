@@ -6,9 +6,7 @@ import com.example.androiddevchallenge.model.CloudyNight
 import com.example.androiddevchallenge.model.DailyForecast
 import com.example.androiddevchallenge.model.Forecast
 import com.example.androiddevchallenge.model.HourlyForecast
-import com.example.androiddevchallenge.model.Night
 import com.example.androiddevchallenge.model.Raining
-import com.example.androiddevchallenge.model.Snowing
 import com.example.androiddevchallenge.model.SnowingAndSunny
 import com.example.androiddevchallenge.model.Sunny
 import java.util.Calendar
@@ -17,7 +15,7 @@ import kotlin.math.roundToInt
 
 fun fakeForecast(): Forecast {
     val todayCalendar = Calendar.getInstance()
-    val todaysHour = todayCalendar.get(Calendar.HOUR_OF_DAY)
+    val todayHour = todayCalendar.get(Calendar.HOUR_OF_DAY)
     todayCalendar.apply {
         set(Calendar.HOUR_OF_DAY, 0)
         set(Calendar.MINUTE, 0)
@@ -30,11 +28,11 @@ fun fakeForecast(): Forecast {
     todayCalendar.add(Calendar.DAY_OF_YEAR, 1)
     val dayAfterTomorrow = todayCalendar.time
 
-    val todaysFourlyForecast = generateFakeHourlyForecasts(from = todaysHour)
+    val todayHourlyForecast = generateFakeHourlyForecasts(from = todayHour + 14)
 
     return Forecast(
         place = "Mountain View", days = listOf(
-            DailyForecast(today, todaysFourlyForecast, todaysFourlyForecast.first().state),
+            DailyForecast(today, todayHourlyForecast, todayHourlyForecast.first().state),
             DailyForecast(tomorrow, generateFakeHourlyForecasts()),
             DailyForecast(dayAfterTomorrow, generateFakeHourlyForecasts()),
         )
